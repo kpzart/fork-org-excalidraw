@@ -60,8 +60,9 @@
   :prefix "org-excalidraw-")
 
 (defcustom org-excalidraw-directory "~/org-excalidraw"
-  "Directory to store excalidraw files."
-  :type 'string
+  "Directory to store excalidraw files. Can either be a path or a function that returns a path."
+  :type '(choice (string :tag "Path")
+                 (function :tag "Function returning a path"))
   :group 'org-excalidraw)
 
 (defcustom org-excalidraw-base (org-excalidraw--default-base)
@@ -104,7 +105,8 @@
   "Create an excalidraw drawing and insert an 'org-mode' link to it at Point."
   (interactive)
   (let* ((filename (format "%s.excalidraw" (org-id-uuid)))
-         (path (expand-file-name filename org-excalidraw-directory))
+         (dir (if (functionp org-excalidraw-directory) (funcall org-excalidraw-directory) org-excalidraw-directory))
+         (path (expand-file-name filename dir))
          (link (format "[[excalidraw:%s.svg]]" path)))
     (org-excalidraw--validate-excalidraw-file path)
     (insert link)
@@ -116,18 +118,19 @@
 (defun org-excalidraw-initialize ()
   "Setup excalidraw.el. Call this after 'org-mode initialization."
   (interactive)
-  (unless (file-directory-p org-excalidraw-directory)
-    (error
-     "Excalidraw directory %s does not exist"
-     org-excalidraw-directory))
-  (file-notify-add-watch org-excalidraw-directory '(change) 'org-excalidraw--handle-file-change)
+  ;; (let ((dir (if (functionp org-excalidraw-directory) (funcall org-excalidraw-directory) org-excalidraw-directory)))
+  ;; (unless (file-directory-p dir)
+  ;;   (error "Excalidraw directory %s does not exist" dir))
+  ;; (file-notify-add-watch dir '(change) 'org-excalidraw--handle-file-change)
   (org-link-set-parameters "excalidraw"
-                           :follow 'org-excalidraw--open-file-from-svg
+                           ;; :follow 'org-excalidraw--open-file-from-svg
                            :image-data-fun (lambda (_protocol link _desc)
                                              (with-temp-buffer (insert-file-contents-literally link)
                                                                (buffer-substring-no-properties
                                                                 (point-min)
-                                                                (point-max))))))
+                                                                (point-max)))))
+  ;; )
+  )
 
 
 (provide 'org-excalidraw)
